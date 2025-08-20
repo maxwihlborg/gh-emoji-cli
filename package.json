@@ -2,7 +2,7 @@
   "name": "gh-emoji-cli",
   "version": "1.0.0",
   "type": "module",
-  "description": "Search and",
+  "description": "List and/or pick from valid github emojis",
   "repository": "github:maxwihlborg/gh-emoji-cli",
   "scripts": {
     "build": "esbuild --minify --bundle --format=esm --platform=node ./src/cli.ts --outdir=dist",
