@@ -1,0 +1,36 @@
+{
+  "name": "gh-emoji-cli",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Search and",
+  "repository": "github:maxwihlborg/gh-emoji-cli",
+  "scripts": {
+    "build": "esbuild --minify --bundle --format=esm --platform=node ./src/cli.ts --outdir=dist",
+    "dev": "esbuild --watch --bundle --format=esm --platform=node ./src/cli.ts --outdir=dist",
+    "prepublish": "pnpm run build"
+  },
+  "bin": {
+    "gh-emoji": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "emoji",
+    "skim",
+    "github",
+    "cli"
+  ],
+  "license": "MIT",
+  "packageManager": "pnpm@10.14.0",
+  "dependencies": {
+    "cac": "^6.7.14",
+    "colorette": "^2.0.20"
+  },
+  "devDependencies": {
+    "@tsconfig/node20": "^20.1.6",
+    "@types/node": "^24.3.0",
+    "esbuild": "^0.25.9",
+    "typescript": "^5.9.2"
+  }
+}
