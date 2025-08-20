@@ -21,6 +21,7 @@ const file = path.resolve(dir, "emojis.json");
 interface IconData {
   name: string;
   code: string;
+  codePoints: number[];
   emoji: string;
 }
 
@@ -34,17 +35,22 @@ async function getEmojiData(): Promise<IconData[]> {
   const data = (await res.json()) as Record<string, string>;
 
   const out: IconData[] = [];
+  const skip = new Set(["atom", "accessibility"]);
+
   for (const [name, url] of Object.entries(data)) {
     const code = path.basename(new URL(url).pathname, ".png");
-    if (code === "atom") continue;
+    if (skip.has(code)) continue;
     try {
-      const emoji = String.fromCodePoint(
-        ...code.split("-").map((n) => globalThis.parseInt(n, 16)),
-      );
+      const codePoints = code
+        .replace("-", ",200d,")
+        .split(",")
+        .map((n) => parseInt(n, 16));
+      const emoji = String.fromCodePoint(...codePoints);
       out.push({
         name,
         emoji,
-        code,
+        codePoints,
+        code: code,
       });
     } catch {}
   }
