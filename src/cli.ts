@@ -12,7 +12,7 @@ import { createInterface } from "node:readline";
 
 const cli = cac("gh-emoji");
 
-cli.version("v1.0.0");
+cli.version("v1.2.0");
 cli.help();
 
 const dir = path.resolve(os.homedir(), ".cache/gh-emoji");
@@ -83,51 +83,100 @@ function* iterEnum<T>(xs: Iterable<T>): IterableIterator<[number, T]> {
   }
 }
 
-async function* iterFormattedIcons(icons: IconData[], color = true) {
-  const n = Math.trunc(Math.log10(icons.length));
+function findIconByName(icons: IconData[], name: string): IconData | undefined {
+  while (name.startsWith(":")) {
+    name = name.substring(1, name.length - 1);
+  }
+  return icons.find((n) => n.name === name);
+}
+
+async function* iterFormattedIcons(
+  icons: IconData[],
+  options: { emoji: boolean; color: boolean },
+) {
+  const n = Math.ceil(Math.log10(icons.length));
   for (const [index, item] of iterEnum(icons)) {
-    if (color) {
-      yield `${magenta(String(index).padStart(n, " "))}. ${item.emoji} ${dim(`:${item.name}:`)}\n`;
+    if (options.color) {
+      yield `${magenta(String(index).padStart(n, " "))}. ${options.emoji ? `${item.emoji} ` : ""}${dim(`:${item.name}:`)}\n`;
     } else {
-      yield `${String(index).padStart(n, " ")}. ${item.emoji} :${item.name}:\n`;
+      yield `${String(index).padStart(n, " ")}. ${options.emoji ? `${item.emoji} ` : ""}:${item.name}:\n`;
     }
   }
 }
 
 cli
   .command("[list]", "List all emojis")
-  .option("-c, --color", "Print with colors")
-  .action(async (_, options: { color: boolean }) => {
+  .option("-c, --color", "Print with colors", { default: true })
+  .option("-e, --emoji", "Print emoji", { default: true })
+  .action(async (_, options: { color: boolean; emoji: boolean }) => {
     const icons = await getIconData();
-    Readable.from(iterFormattedIcons(icons, options.color)).pipe(
-      process.stdout,
-    );
+    Readable.from(iterFormattedIcons(icons, options)).pipe(process.stdout);
   });
 
 cli.command("refresh", "Refresh the icon cache").action(async () => {
   await refreshData();
-  console.log("Icons updated!");
+  process.stdout.write("Icons updated!\n");
 });
 
-cli.command("pick", "Pick emoji with skim").action(async () => {
-  const icons = await getIconData();
-  const child = spawn("sk", ["--no-multi", "--ansi"], {
-    stdio: ["pipe", "pipe", "inherit"],
-    shell: false,
+cli
+  .command("get <emoji>", "Get a icon")
+  .option("-e, --emoji", "Just get the emoji")
+  .option("-t, --table", "Print as table")
+  .action(
+    async (emoji: string, options: { emoji: boolean; table: boolean }) => {
+      const icons = await getIconData();
+      const icon = findIconByName(icons, emoji);
+      if (!icon) {
+        process.exit(1);
+      }
+      if (options.emoji) {
+        process.stdout.write(`${icon.emoji}\n`);
+      } else if (options.table) {
+        process.stdout.write(
+          [
+            `${dim("Emoji │")} ${icon.emoji}`,
+            ` ${dim("Name │")} :${icon.name}:`,
+            ` ${dim("Code │")} ${icon.codePoints.join(", ")}`,
+          ].join("\n") + "\n",
+        );
+      } else {
+        process.stdout.write(JSON.stringify(icon, null, 2) + "\n");
+      }
+    },
+  );
+
+cli
+  .command("pick", "Pick emoji with fzf")
+  .option("-p, --preview", "Preview", { default: true })
+  .action(async (options: { preview: boolean }) => {
+    const icons = await getIconData();
+    const child = spawn(
+      "fzf",
+      ["--no-multi", "--cycle", "--ansi"].concat(
+        options.preview
+          ? ["--preview", `${process.argv[1]} --table get {-1}`]
+          : [],
+      ),
+      {
+        stdio: ["pipe", "pipe", "inherit"],
+        shell: false,
+      },
+    );
+
+    Readable.from(
+      iterFormattedIcons(icons, { color: true, emoji: !options.preview }),
+    ).pipe(child.stdin);
+
+    const re = /^\s*(?<index>\d+)\./;
+    let result: IconData | null = null;
+    for await (const c of createInterface({ input: child.stdout })) {
+      const index = c.match(re)?.groups?.index;
+      if (!index) continue;
+      result = icons[parseInt(index, 10)];
+    }
+    if (result) {
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    }
   });
-
-  Readable.from(iterFormattedIcons(icons, true)).pipe(child.stdin);
-
-  const re = /^\s*(?<index>\d+)\./;
-  let result: IconData | null = null;
-  for await (const c of createInterface({ input: child.stdout })) {
-    const index = c.match(re)?.groups?.index;
-    if (!index) continue;
-    result = icons[parseInt(index, 10)];
-  }
-  if (result) {
-    console.log(JSON.stringify(result, null, 2));
-  }
-});
 
 cli.parse(process.argv);

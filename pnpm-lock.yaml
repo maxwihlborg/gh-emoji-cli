@@ -14,6 +14,9 @@ importers:
       colorette:
         specifier: ^2.0.20
         version: 2.0.20
+      word-width:
+        specifier: ^1.0.1
+        version: 1.0.1
     devDependencies:
       '@tsconfig/node20':
         specifier: ^20.1.6
@@ -212,6 +215,9 @@ packages:
   undici-types@7.10.0:
     resolution: {integrity: sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag==}
 
+  word-width@1.0.1:
+    resolution: {integrity: sha512-rpZr6skZ16AeiAH4kSrj8kJ/cCmGCMQo8XgIt53AuV2o+3yn+6auihlGFfbjKgQqV2CbgRx7uQN7iVcJNF4I2A==}
+
 snapshots:
 
   '@esbuild/aix-ppc64@0.25.9':
@@ -334,3 +340,5 @@ snapshots:
   typescript@5.9.2: {}
 
   undici-types@7.10.0: {}
+
+  word-width@1.0.1: {}
